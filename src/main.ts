@@ -9,6 +9,8 @@ import { FSWatcher, existsSync, watch } from 'fs';
 import { DialogModal } from './modals/DialogModal';
 import PluginExtended from './core/PluginExtended';
 import { ICON_CURRENT_PROFILE, ICON_NO_CURRENT_PROFILE, ICON_UNLOADED_PROFILE, ICON_UNSAVED_PROFILE } from './constants';
+import { machineIdSync } from 'node-machine-id';
+
 
 export default class SettingsProfilesPlugin extends PluginExtended {
 	private vaultSettings: VaultSettings;
@@ -18,6 +20,7 @@ export default class SettingsProfilesPlugin extends PluginExtended {
 
 	async onload() {
 		await this.loadSettings();
+		await this.loadDeviceId();
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SettingsProfilesSettingTab(this.app, this));
@@ -649,10 +652,13 @@ export default class SettingsProfilesPlugin extends PluginExtended {
 		path = path.trim();
 		if (path !== '') {
 			this.vaultSettings.profilesPath = normalize(path)
+			this.saveDeviceId(path).then();
 		}
 		else {
 			this.vaultSettings.profilesPath = DEFAULT_VAULT_SETTINGS.profilesPath;
+			this.saveDeviceId(DEFAULT_VAULT_SETTINGS.profilesPath).then();
 		}
+		
 	}
 
 	/**
@@ -885,6 +891,35 @@ export default class SettingsProfilesPlugin extends PluginExtended {
 		}
 
 		return this.areSettingsSaved(profile);
+	}
+	
+	/**
+	 * Identify strictly the device using the machine id by node-machine-id
+	 * Load the saved path into the profilePath if exists, else create it and save it
+	 */
+	async loadDeviceId() {
+		const deviceId = machineIdSync(true);
+		if (!deviceId) {
+			throw Error('Failed to load device id!');
+		}
+		const saved = this.vaultSettings.devices?.[deviceId];
+		if (saved) this.vaultSettings.profilesPath = saved;
+		 else this.vaultSettings.devices = { [deviceId]: this.vaultSettings.profilesPath };
+		await this.saveSettings();
+	}
+	
+	/**
+	 * Update the devicePath when the profilePath is changed
+	 * @param newPath {string} The new path to be saved
+	 */
+	async saveDeviceId(newPath: string) {
+		const deviceId = machineIdSync(true);
+		if (!deviceId) {
+			throw Error('Failed to load device id!');
+		}
+		if (this.vaultSettings.devices) this.vaultSettings.devices[deviceId] = newPath;
+		else this.vaultSettings.devices = { [deviceId]: newPath };
+		await this.saveSettings();
 	}
 }
 

@@ -1,4 +1,5 @@
 import { join, normalize, sep as slash } from 'path';
+
 const xdg = require('@folder/xdg');
 
 export interface GlobalSettings {
@@ -9,6 +10,8 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
 	profilesList: []
 }
 
+export type DeviceIds = Record<string, string>
+
 export interface VaultSettings {
 	profilesPath: string;
 	activeProfile: Partial<ProfileOptions>;
@@ -16,6 +19,7 @@ export interface VaultSettings {
 	profileUpdateDelay: number;
 	uiUpdate: boolean;
 	uiUpdateInterval: number;
+	devices?: DeviceIds;
 }
 
 export const DEFAULT_VAULT_SETTINGS: VaultSettings = {
@@ -25,6 +29,7 @@ export const DEFAULT_VAULT_SETTINGS: VaultSettings = {
 	profileUpdateDelay: 800,
 	uiUpdate: true,
 	uiUpdateInterval: 1000,
+	devices: {}
 }
 
 export interface ProfileOptions {
